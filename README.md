@@ -1,95 +1,158 @@
+<div align="center">
+
 # ✈️ Itinera
 
-**Plan trips together.** Itinera is a collaborative travel-planning platform: build day-by-day itineraries, share them with the people you trust, gather feedback through comments and upvotes, and discover trips worth taking in a public feed.
+### Plan trips together.
 
-> A ground-up rebuild of an earlier student project (SkyTracker), rethought as a real product — clean architecture, modern stack, and a live demo.
+Itinera is a collaborative travel-planning platform where a trip is a shared workspace — build day-by-day itineraries on an interactive map, invite the people you trust, gather feedback through comments and upvotes, and discover trips worth taking in a public feed.
+
+**[🌐 Live demo](https://itinera-wheat.vercel.app)  ·  [💻 Source](https://github.com/Mithilesh31/itinera)**
+
+`Next.js 14` · `TypeScript` · `PostgreSQL` · `Prisma` · `Auth.js` · `Tailwind CSS` · `Leaflet` · `Vercel`
+
+</div>
 
 ---
 
-## The product in one paragraph
+> **Try it in one click.** The live demo has a **"Continue with demo account"** button — no signup needed. You land in a populated product with real trips, itineraries, and a map.
 
-Travelers plan trips across scattered tools — group chats, spreadsheets, screenshots — and lose the feedback loop. Itinera gives every trip a single shared home: an itinerary, files, discussion, and a public discovery feed. It's built around three users: the **Planner** who organizes, the **Advisor** who gives feedback, and the **Explorer** who browses for inspiration.
+---
+
+## The problem
+
+Travelers plan trips across scattered tools — group chats, spreadsheets, screenshots — and lose the collaborative feedback loop. There's no single place to build an itinerary, get input from people you trust, and keep everything together. Itinera gives every trip one shared home.
+
+**Three users it's built for:**
+
+- **The Planner** — organizes the trip and wants structured feedback.
+- **The Advisor** — a friend who suggests ideas and upvotes good plans.
+- **The Explorer** — browses public trips for inspiration before committing.
+
+## Features
+
+**Plan**
+- Create trips with destination, dates, cover image, and public/private visibility.
+- Build **day-by-day itineraries** — add stops with a place, time, and notes.
+- Every stop is **auto-geocoded** and plotted on an interactive **map**.
+
+**Collaborate**
+- Invite members; **request-to-join** flow with owner approval.
+- **Upvotes** and threaded **comments** on every trip.
+- Role-aware permissions (owners vs. members vs. visitors).
+
+**Discover**
+- Public **Explore feed** with full-text search across title, destination, and description.
+- Trips ranked by community upvotes.
+
+**Measure**
+- A **product analytics dashboard** tracking activation, engagement, average team size, content growth, and a top-trips leaderboard — computed live from the database.
+
+**Feel**
+- **Optimistic UI** everywhere — votes, comments, and itinerary edits appear instantly, with the server reconciling in the background. No spinners, no waiting.
+
+## Screenshots
+
+> **To add screenshots:** capture these four pages (on Mac, `Cmd`+`Shift`+`4`), save them into the `docs/` folder with the exact names below, then uncomment the table.
+>
+> - `docs/landing.png` — the landing page
+> - `docs/explore.png` — the Explore feed
+> - `docs/trip.png` — a trip page with the map
+> - `docs/analytics.png` — the analytics dashboard
+
+<!--
+| Landing | Explore |
+|---|---|
+| ![Landing](docs/landing.png) | ![Explore](docs/explore.png) |
+
+| Trip + Map | Analytics |
+|---|---|
+| ![Trip](docs/trip.png) | ![Analytics](docs/analytics.png) |
+-->
+
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 14 (App Router) + TypeScript |
-| Styling | Tailwind CSS |
-| Database | PostgreSQL |
-| ORM | Prisma |
-| Auth | Auth.js (NextAuth) — *Phase 1* |
-| Deploy | Vercel + Neon Postgres |
+| Layer | Choice | Why |
+|---|---|---|
+| Framework | **Next.js 14** (App Router) + TypeScript | One codebase for UI and API; server components + server actions |
+| Styling | **Tailwind CSS** | Consistent, fast design system |
+| Database | **PostgreSQL** (Neon) | Production-grade, serverless |
+| ORM | **Prisma** | Type-safe schema and queries |
+| Auth | **Auth.js (NextAuth v5)** | Google + one-click demo account, JWT sessions |
+| Maps | **Leaflet + OpenStreetMap** | Interactive maps, no API key |
+| Geocoding | **Nominatim** | Place → coordinates, no API key |
+| Hosting | **Vercel** | Git-push deploys, edge middleware |
 
-## Project status
+## Architecture
 
-This repo is at **Phase 0 — Foundation**: a runnable app with a polished landing page, the full data model defined in Prisma, and clean project structure. Auth, trip CRUD, and the discovery feed arrive in Phase 1. See `../SkyTracker-2.0-Roadmap.md` for the full plan.
-
----
-
-## Getting started (local)
-
-You need **Node 18+**. Postgres is optional for Phase 0 (the landing page runs without a database).
-
-```bash
-# 1. install dependencies
-npm install
-
-# 2. copy env template and fill it in
-cp .env.example .env.local
-
-# 3. run the dev server
-npm run dev
-```
-
-Open http://localhost:3000 — you should see the Itinera landing page.
-
-### Adding the database (when you're ready for Phase 1)
-
-Point `DATABASE_URL` in `.env.local` at a Postgres instance (local, or a free [Neon](https://neon.tech) / [Supabase](https://supabase.com) database), then:
-
-```bash
-npm run db:generate   # generate the Prisma client
-npm run db:migrate    # create the tables
-npm run db:studio     # (optional) browse your data
-```
-
-> **Zero-setup alternative:** to try it with no Postgres, open `prisma/schema.prisma` and switch the datasource `provider` to `"sqlite"` and set `DATABASE_URL="file:./dev.db"` in `.env.local`.
-
----
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start the dev server |
-| `npm run build` | Production build |
-| `npm run typecheck` | TypeScript check, no emit |
-| `npm run db:migrate` | Apply Prisma migrations |
-| `npm run db:studio` | Visual database browser |
-
-## Project structure
+Itinera is a single Next.js App Router codebase. UI is server-rendered by default; interactivity is added with focused **client components** and **server actions** — no separate API layer or client-side data-fetching library.
 
 ```
 src/
   app/
-    page.tsx            # landing page
-    (auth)/             # login, signup (placeholders → Phase 1)
-    explore/            # discovery feed (placeholder → Phase 1)
-    layout.tsx          # root layout + fonts
-    globals.css
+    page.tsx              # marketing landing
+    (auth)/               # login, signup
+    dashboard/            # your trips
+    explore/              # public discovery feed + search
+    trips/[id]/           # trip detail (map, itinerary, votes, comments, join)
+    trips/new/            # create trip
+    analytics/            # product metrics dashboard
+    api/
+      auth/[...nextauth]/ # Auth.js handler
+      health/             # DB keep-warm / health check
+  components/             # VoteButton, Comments, Itinerary, TripMap, TripCard…
   lib/
-    db.ts               # Prisma client singleton
-    utils.ts            # cn() class helper
+    actions/              # server actions (trips, itinerary) — the write layer
+    db.ts                 # Prisma singleton
+    session.ts            # auth helpers
+  auth.ts / auth.config.ts
+  middleware.ts           # edge route protection
 prisma/
-  schema.prisma         # full data model
+  schema.prisma           # data model
+  seed.ts                 # realistic demo data
 ```
 
-## Security notes
+**Data model:** `User` · `Trip` · `Membership` (owner/member) · `ItineraryItem` (day, place, lat/lng) · `Vote` · `Comment` · `JoinRequest` · `Profile`, plus the Auth.js tables.
 
-- No secrets are committed. All configuration lives in `.env.local` (gitignored); `.env.example` documents what's needed.
-- Generate `AUTH_SECRET` with `openssl rand -base64 32`.
+## Engineering decisions worth calling out
 
----
+- **Optimistic UI with `useOptimistic`.** Mutations update the screen instantly and reconcile with the server, so the app feels immediate rather than request-bound.
+- **Thin routes, logic in services.** All writes live in `lib/actions/*` as server actions with auth + validation at the edge — no fat controllers.
+- **Edge-safe auth split.** `auth.config.ts` (no DB) runs in middleware for route protection; the full Prisma-backed config runs in Node — avoids bundling the database into the edge runtime.
+- **Denormalized vote counts** updated transactionally for fast sorting, with a unique `(trip, user)` constraint preventing double-votes.
+- **Keep-warm health endpoint.** `/api/health` runs `SELECT 1`; an external pinger keeps the serverless database from cold-starting so first-actions stay fast.
+- **No secrets in the repo.** All config is environment-based; `.env.example` documents what's needed.
 
-*Built by Mithilesh.*
+## Run it locally
+
+Requires **Node 18+** and a PostgreSQL database (a free [Neon](https://neon.tech) database works great).
+
+```bash
+git clone https://github.com/Mithilesh31/itinera.git
+cd itinera
+npm install
+
+cp .env.example .env          # fill in DATABASE_URL and AUTH_SECRET
+npm run db:migrate            # create tables
+npm run db:seed               # load demo trips
+
+npm run dev                   # http://localhost:3000
+```
+
+Generate an auth secret with `openssl rand -base64 32`.
+
+## Roadmap
+
+- [x] Auth, trips, membership, join requests, votes, comments
+- [x] Public Explore feed with search
+- [x] Interactive map + in-app itinerary editing
+- [x] Instant optimistic UI
+- [x] Product analytics dashboard
+- [x] Live deployment
+- [ ] Real-time comments & notifications
+- [ ] Drag-to-reorder itinerary items
+- [ ] Trip cover uploads (S3/R2)
+
+## About
+
+Itinera is a ground-up rebuild of an earlier student project, rethought as a real, deployed product: clean architecture, tests-ready structure, a live demo, and product instrumentation. Built by **Mithilesh**.
