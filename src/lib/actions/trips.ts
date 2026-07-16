@@ -136,6 +136,51 @@ export async function respondToJoinRequest(requestId: string, approve: boolean) 
   revalidatePath(`/trips/${jr.tripId}`);
 }
 
+/** Clone a public trip (or one you're a member of) into your own private copy. */
+export async function remixTrip(tripId: string) {
+  const user = await requireUser();
+  const source = await db.trip.findUnique({
+    where: { id: tripId },
+    include: { itineraryItems: true },
+  });
+  if (!source) return;
+
+  if (source.visibility !== "PUBLIC") {
+    const member = await db.membership.findUnique({
+      where: { tripId_userId: { tripId, userId: user.id } },
+    });
+    if (!member) throw new Error("You can only remix public trips.");
+  }
+
+  const copy = await db.trip.create({
+    data: {
+      title: `${source.title} (remix)`,
+      description: source.description,
+      destination: source.destination,
+      coverImage: source.coverImage,
+      startDate: source.startDate,
+      endDate: source.endDate,
+      visibility: "PRIVATE",
+      ownerId: user.id,
+      memberships: { create: { userId: user.id, role: "OWNER" } },
+      itineraryItems: {
+        create: source.itineraryItems.map((i) => ({
+          dayIndex: i.dayIndex,
+          title: i.title,
+          place: i.place,
+          time: i.time,
+          notes: i.notes,
+          lat: i.lat,
+          lng: i.lng,
+          order: i.order,
+        })),
+      },
+    },
+  });
+
+  redirect(`/trips/${copy.id}`);
+}
+
 /** Leave a trip (owners cannot leave their own trip). */
 export async function leaveTrip(tripId: string) {
   const user = await requireUser();

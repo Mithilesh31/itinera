@@ -30,10 +30,17 @@ Travelers plan trips across scattered tools — group chats, spreadsheets, scree
 
 ## Features
 
+**✨ AI (headline)**
+- **AI itinerary generator** — describe a trip (destination, days, vibe) and Claude builds a full day-by-day plan, auto-plotted on the map.
+- **AI trip assistant** — ask anything about a trip (best time to go, getting around) and get grounded answers.
+- **AI packing list** and **AI trip summaries**, generated from the itinerary.
+- Provider-ready: add an `ANTHROPIC_API_KEY` to enable; the UI degrades gracefully without one.
+
 **Plan**
 - Create trips with destination, dates, cover image, and public/private visibility.
 - Build **day-by-day itineraries** — add stops with a place, time, and notes.
-- Every stop is **auto-geocoded** and plotted on an interactive **map**.
+- **Drag to reorder** items; every stop is **auto-geocoded** and plotted on an interactive **map**.
+- **Remix** any public trip — clone its itinerary into your own.
 
 **Collaborate**
 - Invite members; **request-to-join** flow with owner approval.
@@ -78,7 +85,9 @@ Travelers plan trips across scattered tools — group chats, spreadsheets, scree
 | Styling | **Tailwind CSS** | Consistent, fast design system |
 | Database | **PostgreSQL** (Neon) | Production-grade, serverless |
 | ORM | **Prisma** | Type-safe schema and queries |
+| AI | **Anthropic (Claude)** | Itinerary generation, assistant, packing lists, summaries |
 | Auth | **Auth.js (NextAuth v5)** | Google + one-click demo account, JWT sessions |
+| Tests/CI | **Vitest + GitHub Actions** | Unit tests, lint, typecheck on every push |
 | Maps | **Leaflet + OpenStreetMap** | Interactive maps, no API key |
 | Geocoding | **Nominatim** | Place → coordinates, no API key |
 | Hosting | **Vercel** | Git-push deploys, edge middleware |
@@ -149,9 +158,13 @@ Generate an auth secret with `openssl rand -base64 32`.
 - [x] Instant optimistic UI
 - [x] Product analytics dashboard
 - [x] Live deployment
+- [x] AI itinerary generator, assistant, packing lists, summaries
+- [x] Drag-to-reorder itinerary items
+- [x] Remix a public trip
+- [x] Unit tests + CI (GitHub Actions)
 - [ ] Real-time comments & notifications
-- [ ] Drag-to-reorder itinerary items
 - [ ] Trip cover uploads (S3/R2)
+- [ ] Google login (live)
 
 ## About
 

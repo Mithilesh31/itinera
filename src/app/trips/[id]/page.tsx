@@ -8,6 +8,7 @@ import {
   X,
   LogOut,
   Lock,
+  Copy,
   Map as MapIcon,
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
@@ -15,9 +16,17 @@ import { TripMap } from "@/components/trip-map";
 import { VoteButton } from "@/components/vote-button";
 import { Comments } from "@/components/comments";
 import { Itinerary } from "@/components/itinerary";
+import { AiGenerateItinerary } from "@/components/ai-generate-itinerary";
+import { AiAssistant } from "@/components/ai-assistant";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import { requestToJoin, respondToJoinRequest, leaveTrip } from "@/lib/actions/trips";
+import { aiConfigured } from "@/lib/ai";
+import {
+  requestToJoin,
+  respondToJoinRequest,
+  leaveTrip,
+  remixTrip,
+} from "@/lib/actions/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +110,8 @@ export default async function TripDetailPage({
     .filter((i) => i.lat != null && i.lng != null)
     .map((i) => ({ lat: i.lat as number, lng: i.lng as number, title: i.title, day: i.dayIndex }));
 
+  const aiEnabled = aiConfigured();
+
   return (
     <main className="min-h-screen bg-slate-50">
       {user ? <AppHeader /> : null}
@@ -161,7 +172,14 @@ export default async function TripDetailPage({
             </section>
           )}
 
-          {/* Itinerary (optimistic add/delete) */}
+          {/* AI itinerary generator (members only) */}
+          {isMember && (
+            <div>
+              <AiGenerateItinerary tripId={trip.id} aiEnabled={aiEnabled} />
+            </div>
+          )}
+
+          {/* Itinerary (optimistic add/delete + drag reorder) */}
           <Itinerary
             tripId={trip.id}
             isMember={isMember}
@@ -174,6 +192,9 @@ export default async function TripDetailPage({
               notes: i.notes,
             }))}
           />
+
+          {/* AI assistant (members only) */}
+          {isMember && <AiAssistant tripId={trip.id} aiEnabled={aiEnabled} isOwner={isOwner} />}
 
           {/* Comments (optimistic) */}
           <Comments
@@ -228,6 +249,17 @@ export default async function TripDetailPage({
                 </Link>
               )}
             </div>
+
+            {user && (
+              <form action={remixTrip.bind(null, trip.id)} className="mt-3 border-t border-slate-50 pt-3">
+                <button className="flex w-full items-center justify-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand-300">
+                  <Copy className="h-3.5 w-3.5" /> Remix this trip
+                </button>
+                <p className="mt-1.5 text-center text-xs text-slate-400">
+                  Clone the itinerary into your own trip
+                </p>
+              </form>
+            )}
           </div>
 
           {/* Owner: pending join requests */}

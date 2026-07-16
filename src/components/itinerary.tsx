@@ -1,8 +1,12 @@
 "use client";
 
 import { useOptimistic, useRef, useTransition } from "react";
-import { MapPin, Trash2, Plus } from "lucide-react";
-import { addItineraryItem, deleteItineraryItem } from "@/lib/actions/itinerary";
+import { MapPin, Trash2, Plus, GripVertical } from "lucide-react";
+import {
+  addItineraryItem,
+  deleteItineraryItem,
+  reorderItineraryItems,
+} from "@/lib/actions/itinerary";
 
 type Item = {
   id: string;
@@ -13,7 +17,10 @@ type Item = {
   notes: string | null;
 };
 
-type Action = { type: "add"; item: Item } | { type: "delete"; id: string };
+type Action =
+  | { type: "add"; item: Item }
+  | { type: "delete"; id: string }
+  | { type: "reorder"; dayIndex: number; orderedIds: string[] };
 
 export function Itinerary({
   tripId,
@@ -26,10 +33,31 @@ export function Itinerary({
 }) {
   const [optimistic, dispatch] = useOptimistic(initialItems, (state, action: Action) => {
     if (action.type === "add") return [...state, action.item];
-    return state.filter((i) => i.id !== action.id);
+    if (action.type === "delete") return state.filter((i) => i.id !== action.id);
+    // reorder within a single day
+    const inDay = new Map(state.filter((i) => i.dayIndex === action.dayIndex).map((i) => [i.id, i]));
+    const others = state.filter((i) => i.dayIndex !== action.dayIndex);
+    const reordered = action.orderedIds.map((id) => inDay.get(id)).filter(Boolean) as Item[];
+    return [...others, ...reordered];
   });
   const [, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const dragRef = useRef<{ id: string; day: number } | null>(null);
+
+  function onDrop(target: Item, day: number, dayItems: Item[]) {
+    const src = dragRef.current;
+    dragRef.current = null;
+    if (!src || src.day !== day || src.id === target.id) return;
+    const ids = dayItems.map((i) => i.id);
+    const from = ids.indexOf(src.id);
+    const to = ids.indexOf(target.id);
+    if (from === -1 || to === -1) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    startTransition(async () => {
+      dispatch({ type: "reorder", dayIndex: day, orderedIds: ids });
+      await reorderItineraryItems(tripId, ids);
+    });
+  }
 
   // Group by day.
   const days = new Map<number, Item[]>();
@@ -75,31 +103,46 @@ export function Itinerary({
             <div key={day}>
               <div className="mb-2 text-sm font-semibold text-brand-600">Day {day}</div>
               <div className="space-y-2">
-                {items.map((item) => (
-                  <div key={item.id} className="group rounded-xl border border-slate-100 bg-white p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{item.title}</h3>
-                      <div className="flex items-center gap-2">
-                        {item.time && <span className="text-xs text-slate-400">{item.time}</span>}
-                        {isMember && !item.id.startsWith("temp-") && (
-                          <button
-                            onClick={() => remove(item.id)}
-                            title="Delete item"
-                            className="text-slate-300 transition hover:text-red-500"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                {items.map((item) => {
+                  const draggable = isMember && !item.id.startsWith("temp-");
+                  return (
+                    <div
+                      key={item.id}
+                      draggable={draggable}
+                      onDragStart={() => (dragRef.current = { id: item.id, day })}
+                      onDragOver={(e) => draggable && e.preventDefault()}
+                      onDrop={() => onDrop(item, day, items)}
+                      className="group flex gap-2 rounded-xl border border-slate-100 bg-white p-4"
+                    >
+                      {draggable && (
+                        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 cursor-grab text-slate-300 transition group-hover:text-slate-400 active:cursor-grabbing" />
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium">{item.title}</h3>
+                          <div className="flex items-center gap-2">
+                            {item.time && <span className="text-xs text-slate-400">{item.time}</span>}
+                            {isMember && !item.id.startsWith("temp-") && (
+                              <button
+                                onClick={() => remove(item.id)}
+                                title="Delete item"
+                                className="text-slate-300 transition hover:text-red-500"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {item.place && (
+                          <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                            <MapPin className="h-3 w-3" /> {item.place}
+                          </div>
                         )}
+                        {item.notes && <p className="mt-1.5 text-sm text-slate-600">{item.notes}</p>}
                       </div>
                     </div>
-                    {item.place && (
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                        <MapPin className="h-3 w-3" /> {item.place}
-                      </div>
-                    )}
-                    {item.notes && <p className="mt-1.5 text-sm text-slate-600">{item.notes}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

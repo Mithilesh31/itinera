@@ -72,6 +72,20 @@ export async function addItineraryItem(tripId: string, formData: FormData) {
   revalidatePath(`/trips/${tripId}`);
 }
 
+/** Persist a new order for a day's items (orderedIds are that day's item ids). */
+export async function reorderItineraryItems(tripId: string, orderedIds: string[]) {
+  const user = await requireUser();
+  await assertMember(tripId, user.id);
+  if (!orderedIds.length) return;
+
+  await db.$transaction(
+    orderedIds.map((id, index) =>
+      db.itineraryItem.update({ where: { id }, data: { order: index } }),
+    ),
+  );
+  revalidatePath(`/trips/${tripId}`);
+}
+
 /** Delete an itinerary item. Bind itemId with .bind(null, itemId). */
 export async function deleteItineraryItem(itemId: string) {
   const user = await requireUser();
