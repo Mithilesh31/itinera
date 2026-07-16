@@ -3,24 +3,21 @@ import { notFound } from "next/navigation";
 import {
   MapPin,
   Calendar,
-  ThumbsUp,
   Users,
-  MessageSquare,
   Check,
   X,
   LogOut,
   Lock,
+  Map as MapIcon,
 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { TripMap } from "@/components/trip-map";
+import { VoteButton } from "@/components/vote-button";
+import { Comments } from "@/components/comments";
+import { Itinerary } from "@/components/itinerary";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
-import {
-  voteTrip,
-  addComment,
-  requestToJoin,
-  respondToJoinRequest,
-  leaveTrip,
-} from "@/lib/actions/trips";
+import { requestToJoin, respondToJoinRequest, leaveTrip } from "@/lib/actions/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -99,13 +96,10 @@ export default async function TripDetailPage({
       ? `${fmtDate(trip.startDate)} – ${fmtDate(trip.endDate)}`
       : fmtDate(trip.startDate) ?? fmtDate(trip.endDate);
 
-  // Group itinerary items by day.
-  const days = new Map<number, typeof trip.itineraryItems>();
-  for (const item of trip.itineraryItems) {
-    const arr = days.get(item.dayIndex) ?? [];
-    arr.push(item);
-    days.set(item.dayIndex, arr);
-  }
+  // Map markers from geocoded itinerary items.
+  const mapPoints = trip.itineraryItems
+    .filter((i) => i.lat != null && i.lng != null)
+    .map((i) => ({ lat: i.lat as number, lng: i.lng as number, title: i.title, day: i.dayIndex }));
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -146,20 +140,7 @@ export default async function TripDetailPage({
             </span>
 
             <div className="ml-auto flex items-center gap-2">
-              {user && (
-                <form action={voteTrip.bind(null, trip.id)}>
-                  <button
-                    type="submit"
-                    className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
-                      hasVoted
-                        ? "border-brand-600 bg-brand-600 text-white"
-                        : "border-slate-200 text-slate-700 hover:border-brand-300"
-                    }`}
-                  >
-                    <ThumbsUp className="h-3.5 w-3.5" /> {trip.votes}
-                  </button>
-                </form>
-              )}
+              {user && <VoteButton tripId={trip.id} votes={trip.votes} hasVoted={hasVoted} />}
             </div>
           </div>
 
@@ -170,103 +151,44 @@ export default async function TripDetailPage({
             </p>
           </section>
 
-          {/* Itinerary */}
-          <section>
-            <h2 className="mb-4 font-display text-xl font-semibold">Itinerary</h2>
-            {days.size ? (
-              <div className="space-y-6">
-                {[...days.entries()].map(([day, items]) => (
-                  <div key={day}>
-                    <div className="mb-2 text-sm font-semibold text-brand-600">Day {day}</div>
-                    <div className="space-y-2">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-xl border border-slate-100 bg-white p-4"
-                        >
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-medium">{item.title}</h3>
-                            {item.time && (
-                              <span className="text-xs text-slate-400">{item.time}</span>
-                            )}
-                          </div>
-                          {item.place && (
-                            <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                              <MapPin className="h-3 w-3" /> {item.place}
-                            </div>
-                          )}
-                          {item.notes && (
-                            <p className="mt-1.5 text-sm text-slate-600">{item.notes}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-                No itinerary items yet.
-              </p>
-            )}
-          </section>
+          {/* Map */}
+          {mapPoints.length > 0 && (
+            <section>
+              <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold">
+                <MapIcon className="h-5 w-5" /> Map
+              </h2>
+              <TripMap points={mapPoints} />
+            </section>
+          )}
 
-          {/* Comments */}
-          <section>
-            <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold">
-              <MessageSquare className="h-5 w-5" /> Discussion ({trip.comments.length})
-            </h2>
+          {/* Itinerary (optimistic add/delete) */}
+          <Itinerary
+            tripId={trip.id}
+            isMember={isMember}
+            initialItems={trip.itineraryItems.map((i) => ({
+              id: i.id,
+              dayIndex: i.dayIndex,
+              title: i.title,
+              place: i.place,
+              time: i.time,
+              notes: i.notes,
+            }))}
+          />
 
-            {user ? (
-              <form action={addComment.bind(null, trip.id)} className="mb-6">
-                <textarea
-                  name="content"
-                  required
-                  rows={3}
-                  placeholder="Share a suggestion or question…"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-                />
-                <div className="mt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-                  >
-                    Post comment
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <p className="mb-6 rounded-xl border border-slate-100 bg-white p-4 text-sm text-slate-500">
-                <Link href="/login" className="font-medium text-brand-600">
-                  Sign in
-                </Link>{" "}
-                to join the discussion.
-              </p>
-            )}
-
-            <div className="space-y-4">
-              {trip.comments.map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <Avatar name={c.author.name} image={c.author.image} />
-                  <div className="flex-1 rounded-xl border border-slate-100 bg-white p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{c.author.name ?? "Traveler"}</span>
-                      <span className="text-xs text-slate-400">
-                        {c.createdAt.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-700">{c.content}</p>
-                  </div>
-                </div>
-              ))}
-              {trip.comments.length === 0 && (
-                <p className="text-sm text-slate-500">No comments yet — start the conversation.</p>
-              )}
-            </div>
-          </section>
+          {/* Comments (optimistic) */}
+          <Comments
+            tripId={trip.id}
+            currentUser={user ? { name: user.name ?? null, image: user.image ?? null } : null}
+            initialComments={trip.comments.map((c) => ({
+              id: c.id,
+              content: c.content,
+              createdLabel: c.createdAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              }),
+              author: { name: c.author.name, image: c.author.image },
+            }))}
+          />
         </div>
 
         {/* Sidebar */}
