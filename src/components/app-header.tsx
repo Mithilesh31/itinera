@@ -19,6 +19,7 @@ export async function AppHeader() {
           <nav className="hidden items-center gap-5 text-sm text-slate-600 sm:flex">
             <Link href="/dashboard" className="hover:text-ink">My trips</Link>
             <Link href="/explore" className="hover:text-ink">Explore</Link>
+            <Link href="/analytics" className="hover:text-ink">Analytics</Link>
           </nav>
         </div>
         <div className="flex items-center gap-3">
